@@ -1,4 +1,5 @@
 # tools.py
+#TOOLS: Web search, Prodigy document database
 import os
 from langchain_core.tools import tool
 

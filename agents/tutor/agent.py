@@ -62,8 +62,8 @@ def run_tutoring_session(user_question: str) -> str:
     return response.content
 
 if __name__ == "__main__":
-    print("--- Activating Sage (LangChain Version) ---")
-    question = "I don't really get how attention works in transformers—I know it's important but the math loses me"
+    print("--- Activating Caesar (LangChain Version) ---")
+    question = "what is 4 * 3"
     
     explanation = run_tutoring_session(question)
     print(explanation)

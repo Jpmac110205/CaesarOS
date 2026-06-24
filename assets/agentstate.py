@@ -1,0 +1,14 @@
+class AgentState:
+    user_input: str
+    current_time: str
+    calendar_events: list
+    tasks: list
+    emails: list
+    memory_context: str
+    fitness_data: str
+    planner_output: str
+    tutor_output: str
+    fitness_output: str
+    email_output: str
+    code_output: str
+    final_output: str
