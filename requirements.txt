@@ -24,3 +24,6 @@ aiohttp
 psycopg2-binary
 psycopg2
 pyowm
+discord.py
+openai
+python-dotenv
