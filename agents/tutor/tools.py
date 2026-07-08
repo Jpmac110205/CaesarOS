@@ -1,7 +1,15 @@
 # tools.py
 #TOOLS: Web search, Prodigy document database
 import os
+import sys
+from pathlib import Path
 from langchain_core.tools import tool
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from assets.agentstate import AgentState
 
 def load_agent_prompt(filename: str = "tutoring_prompt.md") -> str:
     """
@@ -47,6 +55,7 @@ def query_prodigy_rag(search_query: str) -> str:
     
     for document in mock_vector_db:
         if any(keyword in q for keyword in document["keywords"]):
+            AgentState.memory_context += document  # Store the result in AgentState for later use
             return (
                 f"FOUND MATCH IN PRODIGY KB:\n"
                 f"Title: {document['title']}\n"

@@ -1,10 +1,19 @@
 # agent.py
 import os
+import sys
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, ToolMessage
 from tools import load_agent_prompt, query_prodigy_rag
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from assets.agentstate import AgentState
+
 
 load_dotenv()
 
@@ -57,13 +66,14 @@ def run_tutoring_session(user_question: str) -> str:
         
         # Second invocation: Give the model the tool results so it can output the final formatted answer
         final_response = chain.invoke({"messages": messages_state})
+        AgentState.tutor_output += final_response.content
         return final_response.content
-
+    AgentState.tutor_output += response.content
     return response.content
 
 if __name__ == "__main__":
     print("--- Activating Caesar (LangChain Version) ---")
-    question = "what is 4 * 3"
+    question = "explain what a kernel is in OS"
     
     explanation = run_tutoring_session(question)
     print(explanation)

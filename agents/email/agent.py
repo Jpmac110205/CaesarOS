@@ -1,10 +1,18 @@
 # agent.py
 import os
 import json
+import sys
+from pathlib import Path
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from assets.agentstate import AgentState
 from tools import get_unread_emails, load_agent_prompt
 
 load_dotenv()
@@ -55,6 +63,7 @@ def run_inbox_agent(time_of_day: str = "MORNING") -> str:
         response = chain.invoke({
             "email_data": json.dumps(user_payload, indent=2)
         })
+        AgentState.email_output += response.content  # Store the output in AgentState for later use
         return response.content
         
     except Exception as e:

@@ -2,7 +2,15 @@
 #Gmail MCP Tool call, Google Calendar MCP, Google Tasks
 
 import os
+import sys
+from pathlib import Path
 from datetime import datetime, timedelta
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from assets.agentstate import AgentState
 
 def load_agent_prompt(filename: str = "prompt.md") -> str:
     """
@@ -25,6 +33,7 @@ def get_unread_emails(last_run_timestamp: str = None) -> list:
     """
     if not last_run_timestamp:
         last_run_timestamp = (datetime.now() - timedelta(hours=12)).isoformat()
+    
         
     mock_emails = [
         {
@@ -65,5 +74,8 @@ def get_unread_emails(last_run_timestamp: str = None) -> list:
         }
     ]
     
-    filtered_emails = [e for e in mock_emails if e["timestamp"] > last_run_timestamp]
+    filtered_emails = [e for e in mock_emails]
+    # filtered_emails = [e for e in mock_emails if e["timestamp"] > last_run_timestamp]
+
+    AgentState.emails += filtered_emails
     return filtered_emails
