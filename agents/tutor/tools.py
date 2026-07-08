@@ -11,7 +11,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from assets.agentstate import AgentState
 
-def load_agent_prompt(filename: str = "tutoring_prompt.md") -> str:
+def load_agent_prompt(filename: str = "prompt.md") -> str:
     """
     Standard utility helper (Not an LLM tool). 
     Loads the system markdown file from disk before the LLM call 

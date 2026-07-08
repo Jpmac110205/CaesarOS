@@ -23,7 +23,7 @@ def run_tutoring_session(user_question: str) -> str:
     the system prompt dynamically from storage, and executes the conversation loop.
     """
     # 1. Dynamically load the specific 200-line markdown prompt
-    system_instruction = load_agent_prompt("tutoring_prompt.md")
+    system_instruction = load_agent_prompt("prompt.md")
     
     # 2. Build standard LangChain prompt template
     prompt_template = ChatPromptTemplate.from_messages([
