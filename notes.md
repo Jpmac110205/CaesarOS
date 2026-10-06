@@ -1,19 +1,7 @@
-### What needs to get done left
-- Connect agent response to discord bot
-- LangGraph workflow
-- Test agentic functionality
-- Conenct to services
-- Finish dummy agents
-- login and auth hardcoded via http services (.env) 
+# Demo implemented
 
+The working implementation and startup instructions are in README.md. Integration TODOs and user setup are in docs/INTEGRATIONS.md and at the adapter boundaries in caesaros/services/catalog.py, services/reasoning.py and decision/router.py.
 
-## Agents that need dummy functionality
-- Planner
-- Fitness
-- Code (All 3)
-- Orchestrator
+Completed: FastAPI, real LangGraph workflows, isolated typed state, five agents, Code stages, SQLite history, SSE dashboard, approvals/local calendar execution, task completion, scheduled digests/check-ins/reviews, memory/notification feed, optional Claude reasoning, API-based Discord client and integration tests.
 
-# Services that need connectability
-- BeneFIT
-- Prodigy (has to be hosted first)
-- Google
+Remaining user setup: Jev inference interface, external service API contracts and credentials, Prodigy React Agents Mode integration, and production hosting/authentication.

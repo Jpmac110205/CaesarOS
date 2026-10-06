@@ -1,1 +1,1 @@
-#TOOLS: Text generation, fetch docs, view file contents
+"""Uses the parent Code Agent service context; no direct API calls."""

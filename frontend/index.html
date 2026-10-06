@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101312">
+  <title>CaesarOS · Agents Mode</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="CaesarOS home"><span class="brand-mark">C<span>✳</span></span><span>Caesar<span class="muted">OS</span><small>PERSONAL INTELLIGENCE</small></span></a>
+    <div class="workspace"><span class="avatar">J</span><div>Personal workspace<small>Local orchestration demo</small></div><span class="status-dot"></span></div>
+    <div class="nav-label">WORKSPACE</div>
+    <nav aria-label="Main navigation">
+      <button class="nav-item active" data-view="dashboard"><span>◈</span> Command center <kbd>01</kbd></button>
+      <button class="nav-item" data-view="history"><span>↺</span> Execution history</button>
+      <button class="nav-item" data-view="automations"><span>◷</span> Automations</button>
+      <button class="nav-item" data-view="integrations"><span>⌘</span> Integrations</button>
+    </nav>
+    <div class="sidebar-note"><span class="status-dot"></span> SYSTEM PHILOSOPHY<p>Jev decides.<br>Claude reasons.<br>Python executes.<br>CaesarOS coordinates.</p><a href="/docs" target="_blank" rel="noopener">Explore the API ↗</a></div>
+    <div class="sidebar-bottom"><span class="avatar small">C</span><div>Agents Mode<small>Prodigy client preview · v0.1</small></div></div>
+  </aside>
+  <div class="shell">
+    <header class="topbar"><div><span class="muted">Workspace</span><span class="slash">/</span><span id="breadcrumb">Command center</span></div><div class="top-status"><span id="connection-dot" class="status-dot"></span><span id="connection-text">Connecting</span><span class="mode-badge">DEMO DATA</span></div></header>
+    <main>
+      <div class="page-heading"><div><div class="eyebrow">YOUR PERSONAL OPERATING SYSTEM</div><h1 id="page-title">A little less chaos.<br>A lot more coordination.</h1><p id="page-description">One request. The right agents. A plan you can actually use.</p></div><div class="date-card"><span id="demo-date">—</span><small id="timezone">America/New_York</small></div></div>
+      <div id="error-banner" role="alert" class="error-banner hidden"></div>
+      <section id="dashboard-view" class="view">
+        <div class="metric-grid" id="metrics"></div>
+        <div class="dashboard-grid">
+          <div class="primary-column">
+            <section class="panel composer-panel">
+              <div class="panel-heading"><div><span class="eyebrow">START A WORKFLOW</span><h2>What’s on your mind?</h2></div><span class="subtle-tag">Orchestration, in motion</span></div>
+              <form id="run-form"><label class="sr-only" for="request-input">Workflow request</label><textarea id="request-input" rows="3" maxlength="4000" placeholder="Figure out what I should do tonight…" required></textarea><div class="composer-footer"><label for="workflow-select">Route <select id="workflow-select"><option value="auto">Automatically</option><option value="workout">Planner → Fitness</option><option value="study">Planner → Tutor</option><option value="interview">Email → Planner → Code</option><option value="daily_plan">Daily plan</option><option value="tutor">Tutor</option><option value="email">Email</option><option value="code">Code</option></select></label><button class="button primary" id="run-button" type="submit">Run workflow <span>↗</span></button></div></form>
+              <div class="example-prompts"><button data-prompt="Can I fit a workout into my schedule today?">↗ Fit in a workout</button><button data-prompt="I have a physics exam Thursday. Figure out what I should study tonight.">↗ Prepare for an exam</button><button data-prompt="I got an interview email. Help me prepare.">↗ Interview prep</button></div>
+            </section>
+            <section class="panel orchestration-panel">
+              <div class="panel-heading"><div><span class="eyebrow">THE ORCHESTRATION LAYER</span><h2>Your agent crew</h2></div><span id="run-status" class="pill">Ready when you are</span></div>
+              <div class="routing-line"><div class="router-icon">↳</div><div><strong id="routing-title">Jev · Decision layer</strong><small id="routing-description">A bounded router selects the workflow. LangGraph runs the agents.</small></div><span id="confidence" class="confidence">—</span></div>
+              <div id="workflow-path" class="workflow-path">REQUEST <span>→</span> ROUTE <span>→</span> AGENTS <span>→</span> SHARED STATE <span>→</span> PLAN</div>
+              <div id="agent-grid" class="agent-grid"></div>
+              <div class="graph-footer"><span><span class="status-dot"></span> LangGraph orchestration</span><span id="run-meta">State is isolated for every run</span></div>
+            </section>
+            <section class="panel output-panel">
+              <div class="output-header"><div class="tabs" role="tablist" aria-label="Workflow detail"><button class="tab active" role="tab" aria-selected="true" data-tab="response">Result</button><button class="tab" role="tab" aria-selected="false" data-tab="activity">Activity</button><button class="tab" role="tab" aria-selected="false" data-tab="state">Shared state</button><button class="tab" role="tab" aria-selected="false" data-tab="sources">Sources</button></div><button id="cancel-button" class="button small hidden">Cancel run</button></div>
+              <div id="output-content" role="tabpanel"><div class="empty-state"><div class="empty-symbol">✳</div><h3>From intention to action.</h3><p>Run a workflow to see the plan, each agent’s progress,<br>the shared state, and the sources behind the result.</p></div></div>
+            </section>
+          </div>
+          <aside class="context-column">
+            <section class="panel"><div class="panel-heading"><h2>Today’s context</h2><span class="subtle-tag">SAMPLE DAY</span></div><div id="calendar-list"></div><div class="panel-footnote">Recommendations use this sample day’s evening availability.</div></section>
+            <section class="panel"><div class="panel-heading"><h2>Open loops</h2><span id="task-count" class="count-badge">0</span></div><div id="task-list"></div><div class="panel-footnote">Mark tasks complete. The next workflow will pick up the change.</div></section>
+            <section class="fitness-card"><span class="eyebrow">BeneFIT · SAMPLE CONTEXT</span><div class="fitness-heading"><h2>Make room<br>for movement.</h2><span>↗</span></div><p id="fitness-context"></p><button class="button dark" data-prompt="Can I fit a workout into my schedule today?">Find a time <span>→</span></button></section>
+            <div class="context-note"><span>◎</span><p>Demo decisions and responses use local rules and templates. Connect Claude for live reasoning and your services for personal context.</p></div>
+          </aside>
+        </div>
+      </section>
+      <section id="history-view" class="view hidden"><div class="panel"><div class="panel-heading"><h2>Workflow history</h2><button class="button small" id="refresh-history">Refresh</button></div><div id="history-list"></div></div></section>
+      <section id="automations-view" class="view hidden"><div class="info-note">Schedules run while this backend is running. Digests appear in history and the local notification feed. Calendar writes require approval.</div><div id="schedule-list" class="schedule-grid"></div><section class="panel"><div class="panel-heading"><h2>Notification feed</h2><span class="subtle-tag">LOCAL DELIVERY</span></div><div id="notification-list"></div></section></section>
+      <section id="integrations-view" class="view hidden"><div class="info-note">Sample services let you explore the complete workflow without credentials. Each integration has an adapter boundary and a documented TODO in <code>docs/INTEGRATIONS.md</code>.</div><div id="integration-list" class="integration-grid"></div><section class="panel"><div class="panel-heading"><div><h2>Reset the sample day</h2><p>Restore sample tasks, calendar, memory and notifications. History stays; old pending actions are rejected.</p></div><button class="button" id="reset-button">Reset demo data</button></div></section></section>
+    </main>
+    <footer>CAESAROS <span>Built around your life. Connected through shared state.</span><span id="footer-mode">LOCAL DEMO / NO KEYS REQUIRED</span></footer>
+  </div>
+</body>
+</html>

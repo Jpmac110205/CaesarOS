@@ -1,0 +1,924 @@
+CaesarOS
+Project Overview
+CaesarOS is a personal AI operating system designed to coordinate multiple specialized AI agents, external services, personal data sources, and existing applications through a centralized orchestration layer.
+The project is not intended to function as a traditional chatbot.
+Its purpose is to act as the intelligence and workflow layer connecting my existing applications and personal systems into one unified ecosystem.
+CaesarOS manages:
+* Productivity
+* Scheduling
+* Education
+* Software development
+* Email
+* Fitness
+* Personal knowledge
+* Long-term memory
+* Automated daily workflows
+The system is designed around the principle that different components should perform different types of work:
+* Jev handles bounded decisions.
+* Claude or Bedrock handles complex reasoning and generation.
+* Python handles deterministic execution.
+* LangGraph manages workflow state and orchestration.
+* External services provide data and perform actions.
+* Prodigy provides personal knowledge, RAG, and long-term memory.
+* BeneFIT provides fitness and health-related application data.
+CaesarOS itself remains a standalone orchestration backend.
+Prodigy becomes one of the primary user-facing interfaces through an "Agents Mode" that communicates with CaesarOS.
+Discord can remain as a secondary lightweight interface for mobile access, notifications, scheduled digests, and quick commands.
+
+Core Vision
+Most AI applications answer questions.
+CaesarOS manages workflows.
+Most AI assistants are reactive.
+CaesarOS is designed to become increasingly proactive.
+Most personal AI projects exist as isolated applications.
+CaesarOS connects multiple applications and data sources into a coordinated system.
+The long-term goal is to create a personal AI ecosystem where specialized agents can reason about my schedule, tasks, email, coursework, fitness, software projects, and personal knowledge while remaining loosely coupled and independently maintainable.
+
+High-Level Architecture
+The architecture is divided into several major layers:
+User Interfaces
+     ↓
+CaesarOS API
+     ↓
+LangGraph Orchestration Layer
+     ↓
+Decision Layer
+     ↓
+Reasoning Agents
+     ↓
+Shared Services
+     ↓
+External Applications / Databases
+Expanded architecture:
+             ┌─────────────────────┐
+             │     Interfaces      │
+             │                     │
+             │ Prodigy Agents Mode │
+             │ Discord             │
+             └──────────┬──────────┘
+                        │
+                        ▼
+                 ┌──────────────┐
+                 │   FastAPI    │
+                 │ CaesarOS API │
+                 └──────┬───────┘
+                        │
+                        ▼
+                ┌────────────────┐
+                │   LangGraph    │
+                │  Orchestrator  │
+                └───────┬────────┘
+                        │
+                        ▼
+                ┌────────────────┐
+                │ Decision Layer │
+                │      Jev       │
+                └───────┬────────┘
+                        │
+                        ▼
+               ┌──────────────────┐
+               │ Reasoning Agents │
+               │ Claude / Bedrock │
+               └────────┬─────────┘
+                        │
+                        ▼
+                ┌────────────────┐
+                │ Shared Services│
+                └───────┬────────┘
+                        │
+      ┌─────────────────┼──────────────────┐
+      ▼                 ▼                  ▼
+   Prodigy           BeneFIT          External APIs
+   ChromaDB          Firebase         Gmail
+   Memory                             Calendar
+   Documents                          Tasks
+   RAG                                GitHub
+
+Relationship Between CaesarOS and Prodigy
+Prodigy and CaesarOS remain separate systems.
+They solve different problems.
+Prodigy
+Prodigy is the personal knowledge and interaction platform.
+Its responsibilities include:
+* RAG
+* Document ingestion
+* Vector search
+* Long-term memory
+* Conversational memory
+* Study materials
+* Personal notes
+* Knowledge retrieval
+* Web-based user interface
+Prodigy acts as the knowledge layer for CaesarOS.
+CaesarOS agents can query Prodigy's retrieval and memory APIs when they need personal context or document knowledge.
+Prodigy also contains an "Agents Mode."
+Agents Mode serves as a web interface for CaesarOS.
+The user can interact with the CaesarOS orchestration system from inside Prodigy while CaesarOS remains a separate backend service.
+Architecture:
+Prodigy Web App
+├── Chat
+├── Documents
+├── Memory
+├── Study Tools
+└── Agents Mode
+       ↓
+   CaesarOS API
+This allows Prodigy to provide a polished frontend without tightly coupling the orchestration logic to the Prodigy codebase.
+
+Relationship Between CaesarOS and BeneFIT
+BeneFIT remains a separate fitness application.
+It acts as the fitness data layer for CaesarOS.
+CaesarOS can retrieve information such as:
+* Workout history
+* Exercise information
+* Current workout plan
+* Weight history
+* Nutrition information
+* Fitness goals
+* Training frequency
+The Fitness Agent consumes this information through a BeneFIT service rather than directly interacting with the database.
+Example:
+Fitness Agent
+     ↓
+BeneFIT Service
+     ↓
+Firebase
+This preserves separation between agent reasoning and application data.
+
+User Interfaces
+CaesarOS can support multiple interfaces without changing the core backend.
+Prodigy Agents Mode
+This becomes the primary rich user interface.
+Possible capabilities include:
+* Chatting with CaesarOS
+* Running multi-agent workflows
+* Viewing workflow status
+* Viewing which agents were used
+* Viewing retrieved sources
+* Viewing task plans
+* Approving actions
+* Viewing calendar recommendations
+* Viewing execution history
+* Managing automated workflows
+This provides a better interface for complex agent workflows than Discord alone.
+
+Discord
+Discord remains useful as a lightweight secondary interface.
+Its responsibilities include:
+* Quick questions
+* Mobile interaction
+* Morning digests
+* Reminders
+* Automated notifications
+* Short commands
+* Scheduled check-ins
+Discord sends requests to the same CaesarOS backend.
+Discord
+   ↓
+Discord Bot
+   ↓
+CaesarOS API
+Discord does not contain the core intelligence.
+It is simply another client.
+
+LangGraph Orchestration Layer
+LangGraph manages workflow state and determines how different nodes execute.
+It is responsible for:
+* Workflow sequencing
+* Conditional branching
+* Agent execution order
+* Shared state
+* Retry behavior
+* Multi-agent workflows
+* Error handling
+* Workflow completion
+Agents do not directly call each other.
+Instead, they communicate through shared workflow state.
+Example:
+Planner Agent
+    ↓
+planner_output stored in state
+    ↓
+Fitness Agent
+    ↓
+reads planner_output
+    ↓
+fitness_output stored in state
+This prevents agents from becoming tightly coupled.
+
+Shared State
+A CaesarOS workflow maintains structured shared state.
+Possible state model:
+user_input
+
+intent
+
+selected_workflow
+
+calendar_events
+
+tasks
+
+emails
+
+memory_context
+
+retrieved_documents
+
+fitness_data
+
+github_context
+
+planner_output
+
+fitness_output
+
+tutor_output
+
+email_output
+
+code_output
+
+tool_results
+
+confidence_scores
+
+workflow_status
+
+final_response
+Each workflow only uses the state fields it requires.
+
+Decision Layer
+Jev acts as the lightweight decision layer inside CaesarOS.
+It should not perform long-form reasoning.
+It handles bounded decisions.
+Examples include:
+* Which agent should handle this request?
+* Which workflow should run?
+* Which tool should an agent use?
+* Is a retrieved document relevant?
+* Is an email important?
+* Does this request require action?
+* Should another agent run?
+* Is the result complete?
+* Should the system retry?
+* Is confidence high enough to execute automatically?
+The central design principle is:
+Jev decides.
+Claude reasons.
+Python executes.
+LangGraph orchestrates.
+
+Jev Agent Routing
+When a user submits a request, Jev can classify the request and select the appropriate workflow.
+Example:
+User:
+"Can I fit a workout into my schedule today?"
+Possible routing result:
+Workflow:
+Planner → Fitness
+
+Confidence:
+0.96
+LangGraph then runs the selected workflow.
+Another example:
+User:
+"Explain virtual memory."
+Result:
+Workflow:
+Tutor
+
+Confidence:
+0.98
+Another example:
+User:
+"Read the recruiter email I got and help me schedule time to prepare for the interview."
+Result:
+Workflow:
+Email → Planner → Code/Tutor
+
+Confidence Gating
+Jev decisions can include confidence scores.
+CaesarOS can use confidence thresholds to determine whether to:
+* Execute automatically
+* Escalate to Claude
+* Ask the user for clarification
+Example logic:
+if confidence >= 0.90:
+    execute_workflow()
+
+elif confidence >= 0.65:
+    escalate_to_reasoning_model()
+
+else:
+    ask_user_for_clarification()
+This allows CaesarOS to become more autonomous while reducing the risk of incorrect actions.
+
+Reasoning Layer
+Claude or Amazon Bedrock models handle tasks requiring complex reasoning or natural-language generation.
+Examples include:
+* Explaining concepts
+* Creating schedules
+* Reasoning about competing priorities
+* Writing emails
+* Debugging code
+* Designing software systems
+* Summarizing documents
+* Creating study plans
+* Generating workout recommendations
+* Producing final responses
+The reasoning model should not be used for trivial classification when Jev or deterministic code can perform the task more efficiently.
+
+Deterministic Execution Layer
+Python code handles actions that do not require AI reasoning.
+Examples include:
+* API calls
+* Database operations
+* Calendar creation
+* Task creation
+* Sending notifications
+* File operations
+* Data transformation
+* Time calculations
+* Scheduling jobs
+* Updating application state
+The AI decides what should happen.
+Python performs the action.
+
+Core Agents
+Planner Agent
+Purpose:
+Manage productivity, scheduling, and time allocation.
+Responsibilities:
+* Analyze calendar availability
+* Analyze upcoming deadlines
+* Prioritize tasks
+* Allocate study blocks
+* Allocate workout time
+* Build daily schedules
+* Adjust schedules when plans change
+* Coordinate competing priorities
+Tools:
+* Google Calendar
+* Google Tasks
+* Memory
+* Deadline retrieval
+* Schedule analysis
+Outputs:
+* Daily plans
+* Available time blocks
+* Study schedules
+* Task priorities
+* Recommended schedule adjustments
+
+Tutor Agent
+Purpose:
+Provide personalized educational assistance.
+Responsibilities:
+* Explain concepts
+* Generate practice questions
+* Build study plans
+* Create exam preparation strategies
+* Answer questions using personal course materials
+* Retrieve supporting context from Prodigy
+Tools:
+* Prodigy retrieval
+* Course documents
+* Notes
+* Textbooks
+* Personal memory
+Possible flow:
+Question
+   ↓
+Prodigy Retrieval
+   ↓
+Candidate Documents
+   ↓
+Jev Relevance Filter
+   ↓
+Relevant Context
+   ↓
+Tutor Agent
+Outputs:
+* Explanations
+* Study guides
+* Practice questions
+* Exam preparation
+* Concept summaries
+
+Email Agent
+Purpose:
+Analyze and manage communication.
+Responsibilities:
+* Retrieve emails
+* Detect important messages
+* Identify required actions
+* Prioritize email
+* Summarize messages
+* Extract deadlines
+* Draft responses
+Jev may handle:
+* Priority
+* Category
+* Action required
+* Urgency
+Claude may handle:
+* Summaries
+* Interpretation
+* Drafted replies
+* Complex reasoning
+Example:
+Gmail
+   ↓
+Email Service
+   ↓
+Jev Classification
+   ↓
+Important Emails
+   ↓
+Email Agent
+
+Fitness Agent
+Purpose:
+Provide personalized workout and fitness assistance.
+Responsibilities:
+* Review training history
+* Recommend workouts
+* Adjust workouts based on schedule
+* Track fitness goals
+* Monitor workout consistency
+* Coordinate with Planner Agent availability
+Tools:
+* BeneFIT data
+* Workout history
+* Exercise database
+* Nutrition data
+* Fitness goals
+Example workflow:
+Planner
+   ↓
+Available Gym Time:
+5:00 PM - 6:30 PM
+   ↓
+Fitness Agent
+   ↓
+Leg Day
+75 minutes
+
+Code Agent
+Purpose:
+Act as a software engineering assistant.
+Responsibilities:
+* Debug code
+* Review code
+* Explain code
+* Design system architecture
+* Generate implementation plans
+* Analyze GitHub repositories
+* Help build CaesarOS and other projects
+Tools:
+* GitHub
+* Project repositories
+* Documentation
+* Local code
+* Personal project context
+Outputs:
+* Code explanations
+* Debugging assistance
+* Architecture recommendations
+* Implementation plans
+* Code reviews
+
+Shared Services Layer
+Services expose data and actions to agents.
+They should contain minimal or no AI logic.
+Services include:
+Calendar Service
+Task Service
+Email Service
+Prodigy Service
+BeneFIT Service
+GitHub Service
+Memory Service
+Discord Service
+Notification Service
+Services are responsible for:
+* Retrieving data
+* Storing data
+* Sending data
+* Executing API operations
+* Performing deterministic transformations
+Agents should not directly interact with raw external APIs whenever a service abstraction can be used.
+
+Example Workflow: Workout Scheduling
+User:
+"Can I fit a workout into my schedule today?"
+Flow:
+User
+ ↓
+Prodigy Agents Mode or Discord
+ ↓
+CaesarOS API
+ ↓
+LangGraph
+ ↓
+Jev Intent Router
+ ↓
+Planner → Fitness
+Planner Agent:
+* Retrieves calendar
+* Retrieves tasks
+* Determines free time
+* Stores availability in shared state
+Example:
+planner_output:
+available_time = 5:00 PM - 6:30 PM
+Fitness Agent:
+* Reads available time
+* Retrieves BeneFIT history
+* Determines suitable workout
+* Stores recommendation
+Example:
+fitness_output:
+Leg Day
+75 minutes
+Response Builder:
+Combines both outputs.
+Final response:
+You have a 90-minute opening from 5:00 PM to 6:30 PM.
+
+Based on your current workout plan, a 75-minute leg workout fits comfortably during that window.
+
+Example Workflow: Exam Preparation
+User:
+"I have a physics exam Thursday. Figure out what I should study tonight."
+Flow:
+User
+ ↓
+Jev
+ ↓
+Planner → Tutor
+Planner:
+* Reads calendar
+* Determines available study time
+* Checks deadlines
+Tutor:
+* Retrieves physics notes through Prodigy
+* Determines likely study priorities
+* Builds study plan
+Response:
+7:00-8:00 PM:
+Forces and Newton's Laws
+
+8:10-9:00 PM:
+Energy and Work
+
+9:00-9:30 PM:
+Practice Problems
+
+Example Workflow: Interview Preparation
+User:
+"I got an interview email. Help me prepare."
+Possible workflow:
+Email Agent
+     ↓
+Planner Agent
+     ↓
+Code Agent
+Email Agent:
+* Retrieves interview details
+* Extracts company, date, role, and requirements
+Planner Agent:
+* Finds preparation time
+Code Agent:
+* Generates technical preparation plan
+Response Builder:
+Combines all outputs into one actionable plan.
+
+Scheduled Workflows
+CaesarOS supports autonomous scheduled workflows.
+Scheduling can initially use APScheduler.
+Longer-term scheduling can move to a distributed job system if necessary.
+
+Morning Digest
+Trigger:
+8:00 AM
+Flow:
+Scheduler
+ ↓
+Email Service
+ ↓
+Calendar Service
+ ↓
+Task Service
+ ↓
+Jev Prioritization
+ ↓
+Planner Agent
+ ↓
+Fitness Agent
+ ↓
+Digest Builder
+ ↓
+Discord / Prodigy
+Possible output:
+Good morning.
+
+Important:
+- Physics assignment due tomorrow
+- Recruiter email requires a response
+
+Schedule:
+- Class: 10:00 AM
+- Meeting: 2:00 PM
+
+Priority Tasks:
+1. Physics homework
+2. Interview preparation
+
+Workout:
+Upper body workout recommended at 6:00 PM
+
+Afternoon Check-In
+Purpose:
+* Evaluate progress
+* Update priorities
+* Detect unfinished tasks
+* Adjust remaining schedule
+Possible trigger:
+2:00 PM
+The system can compare planned tasks against completed tasks and recommend schedule changes.
+
+Evening Review
+Purpose:
+* Review accomplishments
+* Identify unfinished work
+* Update memory
+* Prepare tomorrow's priorities
+* Suggest next-day schedule
+Possible trigger:
+9:00 PM
+
+Retrieval and RAG
+Prodigy provides CaesarOS with retrieval capabilities.
+Possible flow:
+Agent Query
+ ↓
+Prodigy Service
+ ↓
+ChromaDB
+ ↓
+Candidate Chunks
+ ↓
+Jev Relevance Evaluation
+ ↓
+Relevant Context
+ ↓
+Reasoning Model
+This prevents unnecessary context from being sent to the LLM.
+The system can also retain Prodigy's existing techniques such as:
+* Recursive chunking
+* Query rewriting
+* Reranking
+* Metadata filtering
+* Long-term memory
+* Conversation summarization
+* Retrieval evaluation
+
+Agent Design Philosophy
+Agents should remain lightweight.
+An agent should contain:
+agent.py
+prompt.md
+tools.py
+Example:
+agents/
+    planner/
+        agent.py
+        prompt.md
+        tools.py
+
+    tutor/
+        agent.py
+        prompt.md
+        tools.py
+
+    email/
+        agent.py
+        prompt.md
+        tools.py
+
+    fitness/
+        agent.py
+        prompt.md
+        tools.py
+
+    code/
+        agent.py
+        prompt.md
+        tools.py
+Agents should contain:
+* Identity
+* Instructions
+* Tool definitions
+* Memory access
+* Reasoning logic
+Most reusable business logic should exist in services.
+
+Proposed Backend Structure
+caesaros/
+│
+├── api/
+│   ├── routes/
+│   └── dependencies/
+│
+├── agents/
+│   ├── planner/
+│   ├── tutor/
+│   ├── email/
+│   ├── fitness/
+│   └── code/
+│
+├── decision/
+│   ├── router.py
+│   ├── tool_selector.py
+│   ├── relevance.py
+│   └── confidence.py
+│
+├── graphs/
+│   ├── main_graph.py
+│   ├── planner_graph.py
+│   ├── study_graph.py
+│   └── workflow_nodes.py
+│
+├── services/
+│   ├── calendar_service.py
+│   ├── task_service.py
+│   ├── email_service.py
+│   ├── prodigy_service.py
+│   ├── benefit_service.py
+│   ├── github_service.py
+│   └── notification_service.py
+│
+├── state/
+│   ├── models.py
+│   └── workflow_state.py
+│
+├── scheduling/
+│   ├── scheduler.py
+│   ├── morning_digest.py
+│   ├── afternoon_checkin.py
+│   └── evening_review.py
+│
+├── evaluation/
+│   ├── routing_eval.py
+│   ├── retrieval_eval.py
+│   ├── latency_eval.py
+│   └── workflow_eval.py
+│
+└── main.py
+
+Technology Stack
+Backend:
+FastAPI
+Workflow Orchestration:
+LangGraph
+Primary Reasoning Model:
+Claude / Amazon Bedrock
+Decision Layer:
+Jev
+Vector Database:
+ChromaDB through Prodigy
+Fitness Data:
+Firebase through BeneFIT
+Frontend:
+Prodigy React web application with Agents Mode
+Secondary Interface:
+Discord using discord.py
+Scheduling:
+APScheduler
+Personal Knowledge:
+Prodigy retrieval and memory systems
+Version Control:
+GitHub
+External APIs:
+* Gmail
+* Google Calendar
+* Google Tasks
+* GitHub
+* Discord
+* Additional APIs as needed
+
+System Design Principles
+1. Separation of Concerns
+Each layer has a specific role.
+Jev:
+Decision making
+
+Claude:
+Reasoning and generation
+
+LangGraph:
+Workflow orchestration
+
+Python:
+Execution
+
+Services:
+External integrations
+
+Prodigy:
+Knowledge and memory
+
+BeneFIT:
+Fitness data
+
+2. Agents Should Not Directly Communicate
+Agents communicate through shared state.
+This reduces coupling and makes workflows easier to test and modify.
+
+3. Services Should Not Contain AI Reasoning
+Services retrieve, store, transform, or send data.
+Agents decide how that data should be interpreted.
+
+4. Use AI Only Where AI Is Necessary
+Deterministic tasks should remain deterministic.
+Small decisions should use Jev when appropriate.
+Complex reasoning should use Claude.
+This reduces:
+* Latency
+* Token usage
+* Cost
+* Unnecessary model calls
+
+5. Actions Should Be Confidence-Gated
+Low-confidence decisions should not automatically trigger important external actions.
+Potentially destructive actions should require stronger validation or user approval.
+Examples include:
+* Sending emails
+* Deleting calendar events
+* Modifying important tasks
+* Editing repositories
+
+6. CaesarOS Should Be Interface-Agnostic
+CaesarOS is the backend intelligence layer.
+Prodigy and Discord are simply clients.
+Additional clients could be added later without redesigning the core system.
+
+Evaluation Strategy
+CaesarOS should measure its own performance.
+Possible metrics include:
+* Agent routing accuracy
+* Jev routing accuracy
+* Workflow completion rate
+* LLM token usage
+* Average latency
+* Retrieval precision
+* Retrieval recall
+* Tool-selection accuracy
+* Number of retries
+* Confidence calibration
+* Cost per workflow
+One important experiment will compare:
+Claude-only orchestration
+against:
+Jev-assisted orchestration
+Metrics:
+* Routing accuracy
+* Latency
+* Token consumption
+* Cost
+* Failure rate
+This provides quantitative evidence for the architectural decisions.
+
+Long-Term Goal
+The long-term goal of CaesarOS is to become the central intelligence layer connecting my personal software ecosystem.
+It should unify:
+Prodigy
+BeneFIT
+Google Calendar
+Google Tasks
+Gmail
+GitHub
+Discord
+Personal memory
+Course materials
+Software projects
+into one coordinated system.
+The eventual experience should allow a request such as:
+"Figure out what I should do tonight."
+to trigger a workflow that can understand:
+* My calendar
+* My assignments
+* Upcoming exams
+* Important emails
+* Current projects
+* Fitness schedule
+* Recent activity
+* Long-term goals
+* Personal knowledge
+and produce an actionable plan using multiple specialized components.
+CaesarOS is therefore not simply another chatbot or collection of prompts.
+It is a stateful, multi-agent AI orchestration platform designed around my own applications, data, workflows, and daily life.
+The core architectural philosophy is:
+Jev decides. Claude reasons. Python executes. LangGraph orchestrates. Prodigy remembers. BeneFIT provides fitness context. CaesarOS coordinates everything.

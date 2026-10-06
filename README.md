@@ -1,544 +1,153 @@
 # CaesarOS
 
-## Vision
+A working local demo of the personal AI operating system in the project overview: FastAPI → bounded decision layer → LangGraph → specialized agents → shared services. Includes an Agents Mode dashboard showing live execution, shared state, sources, plans, approvals and history.
+
+Your original design is preserved in [docs/PROJECT_OVERVIEW.txt](docs/PROJECT_OVERVIEW.txt).
+
+**Runs without API keys.** The graph, API, SQLite persistence, time calculations, scheduling and local action execution are real. Integration data is synthetic; Jev routing uses rules and agent reasoning uses templates by default. Optional live Claude reasoning is implemented. Prodigy and BeneFIT remain separate applications.
+
+## Run the demo
+
+Requires **Python 3.11+**. The old `.venv` used Python 3.9, so the launcher creates a separate `.venv-demo` and leaves the old environment and your `.env` alone.
+
+```bash
+./run_demo.sh
+```
+
+Open **http://127.0.0.1:8000**. API docs: **http://127.0.0.1:8000/docs**.
+
+If `python3` points to an old version: `CAESAROS_PYTHON=/path/to/python3.11 ./run_demo.sh`. For a different port: `CAESAROS_PORT=8001 ./run_demo.sh`.
+
+Manual setup:
+
+```bash
+python3 -m venv .venv-demo
+.venv-demo/bin/python -m pip install -r requirements.txt
+.venv-demo/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
+
+Keep **one server process** so scheduled jobs run once. Schedules fire while the backend is running; there is no daemon installed.
+
+## Try it
+
+- **Workout:** “Can I fit a workout into my schedule today?” → Planner reads calendar/tasks/memory; Fitness uses the availability and BeneFIT sample history. Approve a block to add it to the local calendar. Run again to see the changed availability.
+- **Exam preparation:** “I have a physics exam Thursday. Figure out what I should study tonight.” → Planner allocates evening blocks; Tutor retrieves and filters sample physics notes, exposing source IDs and practice questions.
+- **Interview:** “I got an interview email. Help me prepare.” → Email extracts the sample recruiter message; Planner finds prep time; Code produces a preparation plan, example code, test checklist and critique. Replies remain drafts.
+- **Daily coordination:** “Figure out what I should do tonight.” → Email → Planner → Tutor → Fitness.
+- **Knowledge:** “Explain virtual memory.” → Tutor answers from sample OS notes. Unknown topics clearly report missing demo materials.
+- **Confidence gates:** “Help me organize my priorities” exercises escalation; “hmm” asks for clarification without running agents.
+- **Automations:** run a morning digest, afternoon check-in or evening review immediately, or save a timezone-aware daily schedule. Check off a task first; the review reads the updated completion state and saves a local memory entry.
+
+The dashboard includes Result, Activity, Shared state and Sources tabs, JSON export, workflow cancellation, execution history, notification feed, integration TODOs and a demo reset. It is a lightweight standalone frontend, ready to serve as the reference for Prodigy's React Agents Mode.
 
-CaesarOS is a personal AI operating system designed to orchestrate multiple specialized AI agents into a single intelligent ecosystem. Unlike traditional chatbots, CaesarOS is not a standalone AI assistant. It is an orchestration platform that integrates my existing projects, personal data sources, and external services to provide autonomous assistance throughout my daily life.
+## Architecture
 
-The primary goal of CaesarOS is to function as a centralized intelligence layer that coordinates productivity, learning, software development, communication, and fitness workflows through specialized agents.
+```mermaid
+flowchart TD
+  UI[Agents Mode / Discord / future Prodigy client] --> API[FastAPI]
+  API --> Router[Bounded router: Jev adapter]
+  Router --> Gate{Confidence gate}
+  Gate -->|High| Graph[LangGraph conditional workflow]
+  Gate -->|Medium| Reasoner[Demo fallback / optional Claude]
+  Reasoner --> Graph
+  Gate -->|Low| Clarify[Ask for clarification]
+  Graph --> Agents[Email · Planner · Tutor · Fitness · Code]
+  Agents <--> State[Isolated workflow state]
+  Agents --> Services[Service adapters]
+  Services --> Data[Local demo data / future external APIs]
+  Graph --> Result[Response + proposed actions]
+  Result --> Approval[User approval]
+  Approval --> Execute[Deterministic local calendar executor]
+```
 
-The system will primarily interact with me through Discord, allowing access from both my phone and computer without requiring a custom frontend or mobile application.
+Agent nodes do not call each other. Each returns shared state to LangGraph; conditional edges select the next agent. The Code Agent's coding/testing/critiquing stages produce structured artifacts inside its node. Services retrieve and transform data; no LLM is embedded in a service data adapter.
 
----
+```text
+caesaros/
+  api/app.py                  API, SSE snapshots and local dashboard
+  config.py                   Explicit demo/live configuration
+  decision/                   Routing, confidence gates and relevance
+  graphs/                     LangGraph nodes and managed runtime
+  services/                   SQLite, fixtures, data adapters, reasoning provider
+  state/                      Typed graph state and validated API requests
+  scheduling/                 Persisted APScheduler definitions
+  evaluation/                 Small routing smoke benchmark
+agents/<agent>/               Agent implementation, tools and existing prompts
+agents/code/{coding,testing,critiquing}/
+frontend/                     Dependency-free Agents Mode dashboard
+connections/Discord/bot.py    Opt-in client of the same API
+backend/main.py               Compatibility server entry point
+assets/agentstate.py           Compatibility import of the per-run state type
+```
 
-# Core Philosophy
+State includes selected workflow, confidence, calendar, tasks, email, memory, documents, fitness/repository context, every agent output, tool results, source citations, proposed actions, events, metrics and the final response. SQLite snapshots update during execution and survive restarts. Interrupted executions are marked failed and can be retried; automatic checkpoint resume is not implemented.
 
-Most AI projects answer questions.
+Calendar proposals are never automatically applied. Approval is transactional and idempotent, and rechecks for calendar conflicts. A stale recommendation is rejected if another workflow has already booked that time. Task completion and demo memory/notifications persist locally. Reset restores the sample day and invalidates pending proposals while preserving history.
 
-CaesarOS manages workflows.
+The sample date is generated when the database is created/reset and remains stable for repeatable demonstrations. Plans use that sample day's 5 PM–10:30 PM window rather than claiming to know your actual current calendar. Change the timezone with `CAESAROS_TIMEZONE` and reset data to regenerate fixtures.
 
-Most AI assistants are reactive.
+## Folder guide
 
-CaesarOS is proactive.
+Every meaningful source folder has its own README. Read them in this order to understand the complete system:
 
-Most projects are isolated.
+1. [Core package](caesaros/README.md) — the complete request lifecycle.
+2. [Workflow state](caesaros/state/README.md) — the data every layer reads and writes.
+3. [Decision layer](caesaros/decision/README.md) — routing, confidence gates, and relevance.
+4. [Graph runtime](caesaros/graphs/README.md) — sequencing, retries, persistence, and response building.
+5. [Agents](agents/README.md) — how specialized components communicate through state.
+6. [Services](caesaros/services/README.md) — provider boundaries, fixtures, SQLite, and reasoning.
+7. [API](caesaros/api/README.md) and [frontend](frontend/README.md) — how clients submit and observe workflows.
+8. [Scheduling](caesaros/scheduling/README.md) — autonomous daily workflows.
+9. [Connections](connections/README.md) — Discord and future Google, Prodigy, and BeneFIT integrations.
+10. [Tests](tests/README.md) and [evaluation](caesaros/evaluation/README.md) — verified behavior and routing measurements.
 
-CaesarOS integrates multiple projects into a single ecosystem.
+Additional compatibility and project material:
 
----
+- [Backend entry point](backend/README.md)
+- [Legacy state compatibility](assets/README.md)
+- [Design and integration documents](docs/README.md)
 
-# High-Level Architecture
+The individual agent guides cover [Email](agents/email/README.md), [Planner](agents/planner/README.md), [Tutor](agents/tutor/README.md), [Fitness](agents/fitness/README.md), [Code](agents/code/README.md), and the [orchestrator compatibility layer](agents/orchestrator/README.md). The Code Agent also documents its [coding](agents/code/coding/README.md), [testing](agents/code/testing/README.md), and [critique](agents/code/critiquing/README.md) stages.
 
-Discord serves as the user interface.
+## API
 
-The Discord Bot communicates with a FastAPI backend.
+| Endpoint | Behavior |
+| --- | --- |
+| `POST /api/runs` | Submit `{user_input, workflow?: "auto"}`; returns 202 and run ID |
+| `GET /api/runs` | Latest 50 full workflow records |
+| `GET /api/runs/{id}` | Persisted state snapshot |
+| `GET /api/runs/{id}/events` | SSE `state` events through a terminal state |
+| `POST /api/runs/{id}/cancel` | Cancel queued/running execution |
+| `POST /api/runs/{id}/actions/{action_id}` | `{decision: "approve" or "reject"}` |
+| `PATCH /api/tasks/{id}` | `{completed: true or false}` |
+| `PATCH /api/schedules/{name}` | `{enabled, hour, minute}` in configured timezone |
+| `POST /api/schedules/{name}/run` | Run a digest/check-in/review immediately |
+| `GET /api/overview` | Context, schedules, integration status and recent metrics |
+| `GET /api/health` | Backend health and active modes |
+| `POST /api/demo/reset` | Restore sample data, keep history |
 
-The FastAPI backend contains the LangGraph orchestration engine.
+Explicit workflows: `workout`, `study`, `interview`, `daily_plan`, `tutor`, `email`, `code`, `morning_digest`, `afternoon_checkin`, `evening_review`.
 
-The orchestration engine routes requests to specialized agents and shared services.
+Run statuses: `queued`, `running`, `awaiting_approval`, `completed`, `needs_clarification`, `failed`, `cancelled`. SSE closes at a terminal status, including `awaiting_approval`; fetch updated state after resolving actions. Follow-up clarification is a new request, without implicit conversation memory.
 
-Agents perform reasoning.
+## Credentials and TODOs
 
-Services retrieve and store information.
+See **[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)** for exact adapter boundaries, contracts and setup steps. `.env.example` lists optional configuration. Fill values in your existing `.env`; no secret is sent to the browser.
 
-Databases store structured and unstructured memory.
+Implemented: direct Claude Messages API reasoning and a thin Discord request client. User setup still required: Anthropic key/model or Discord bot/owner/channel. No external service is connected by default.
 
-Flow:
+TODO adapters: actual Jev inference, Bedrock, Prodigy retrieval/memory, BeneFIT API, Google OAuth/calendar/tasks/Gmail, GitHub context and external notifications. TODO before public hosting: authentication, user scoping, production action execution records and a dedicated scheduler/worker. This demo binds to loopback and is intended for single-user local use.
 
-Discord
-↓
-Discord Bot
-↓
-FastAPI
-↓
-LangGraph Orchestrator
-↓
-Agents + Services
-↓
-Response Builder
-↓
-Discord
+## Verify
 
----
+```bash
+.venv-demo/bin/python -m pip install -r requirements-dev.txt
+.venv-demo/bin/python -m pytest -q
+.venv-demo/bin/python -m caesaros.evaluation.routing_eval
+```
 
-# Existing Project Integration
+Tests execute the real graph/API and cover state isolation, retrieved sources, planner gaps, approval idempotency/conflicts, reset invalidation, scheduled review/memory, timezone-aware schedule restoration, persistence, retries, safe failures, SSE, validation and cancellation. The routing benchmark contains demo smoke cases; it is not a claim about Jev or general routing accuracy.
 
-CaesarOS acts as a unifying layer above my existing projects.
+Dependencies are bounded in `requirements.txt`. `requirements.lock` records the exact environment used for verification, including test dependencies.
 
-## Prodigy Integration
-
-Prodigy becomes the knowledge and memory layer.
-
-Capabilities:
-
-* Vector search
-* Long-term memory retrieval
-* Document retrieval
-* Class notes
-* Textbooks
-* Study materials
-* RAG pipelines
-
-Agents can access Prodigy's knowledge base through service calls.
-
-Example:
-
-Tutor Agent retrieves Operating Systems notes from Prodigy's vector database before generating explanations.
-
----
-
-## BeneFIT Integration
-
-BeneFIT becomes the fitness data layer.
-
-Capabilities:
-
-* Workout history
-* Exercise database
-* Weight tracking
-* Nutrition tracking
-* Workout plans
-
-The Fitness Agent can use BeneFIT data to generate recommendations and schedules.
-
----
-
-# Agent Philosophy
-
-Agents are specialized reasoning systems.
-
-Agents should not directly communicate with each other.
-
-Agents communicate through shared workflow state managed by the orchestrator.
-
-Agents are intentionally lightweight.
-
-Most business logic should exist within services.
-
-An agent consists of:
-
-* Identity
-* Instructions
-* Tools
-* Memory Access
-* LLM
-
-An agent is not:
-
-Prompt + Response
-
-An agent is:
-
-Reasoning + Tool Usage + Decision Making
-
----
-
-# Agent Architecture
-
-Each agent contains:
-
-agent.py
-prompt.md
-tools.py
-
-Example:
-
-planner/
-├── agent.py
-├── prompt.md
-└── tools.py
-
-The prompt defines responsibilities.
-
-The tools define capabilities.
-
-The agent combines the LLM with tools and instructions.
-
----
-
-# Core Agents
-
-## Email Agent
-
-Purpose:
-
-Manage and summarize email communication.
-
-Responsibilities:
-
-* Read emails
-* Prioritize messages
-* Detect urgent items
-* Generate summaries
-* Surface action items
-
-Tools:
-
-* Gmail API
-* Email categorization
-* Email summarization
-
-Outputs:
-
-* Important emails
-* Action items
-* Priority inbox summaries
-
----
-
-## Planner Agent
-
-Purpose:
-
-Act as the central productivity planner.
-
-Responsibilities:
-
-* Analyze schedule
-* Prioritize tasks
-* Allocate study time
-* Allocate workout time
-* Generate daily plans
-
-Tools:
-
-* Google Calendar
-* Google Tasks
-* Personal memory
-
-Outputs:
-
-* Daily schedule
-* Study blocks
-* Productivity recommendations
-
----
-
-## Tutor Agent
-
-Purpose:
-
-Provide personalized education assistance.
-
-Responsibilities:
-
-* Explain concepts
-* Generate study guides
-* Create practice questions
-* Leverage personal notes
-
-Tools:
-
-* Prodigy Retrieval
-* Course Documents
-* Textbooks
-* Notes
-
-Outputs:
-
-* Explanations
-* Study plans
-* Exam preparation
-
----
-
-## Fitness Agent
-
-Purpose:
-
-Act as a personal fitness coach.
-
-Responsibilities:
-
-* Schedule workouts
-* Monitor recovery
-* Recommend exercises
-* Track goals
-
-Tools:
-
-* BeneFIT
-* Workout History
-* Nutrition Data
-
-Outputs:
-
-* Workout recommendations
-* Recovery suggestions
-* Diet guidance
-
----
-
-## Code Agent
-
-Purpose:
-
-Act as an AI software engineering assistant.
-
-Responsibilities:
-
-* Debug code
-* Explain code
-* Design systems
-* Generate implementation plans
-
-Tools:
-
-* GitHub
-* Documentation
-* Project Repositories
-* Local Codebase
-
-Outputs:
-
-* Technical explanations
-* Architecture suggestions
-* Code reviews
-
----
-
-# Shared Services Layer
-
-Services provide data.
-
-Agents provide reasoning.
-
-Services include:
-
-Calendar Service
-Email Service
-Discord Service
-Prodigy Service
-BeneFIT Service
-Memory Service
-
-Services should not contain AI logic.
-
-Services only:
-
-* Retrieve data
-* Store data
-* Send data
-
----
-
-# State Management
-
-CaesarOS uses a shared state object.
-
-Agents do not call each other.
-
-Agents read and update state.
-
-Example:
-
-Planner Agent
-↓
-Updates State
-
-Fitness Agent
-↓
-Reads State
-
-This creates loosely coupled workflows.
-
-Example:
-
-Planner determines:
-
-Available Gym Time:
-5:00 PM - 6:30 PM
-
-Fitness Agent reads planner output and recommends:
-
-Leg Day
-75 Minutes
-
-The orchestrator combines both outputs into a final response.
-
----
-
-# Example Workflow
-
-User:
-
-Can I fit a workout into my schedule today?
-
-Workflow:
-
-1. Planner Agent
-2. Fitness Agent
-3. Response Builder
-
-Planner Agent:
-
-* Reads Calendar
-* Reads Tasks
-* Determines availability
-
-State Updated:
-
-planner_output
-
-Fitness Agent:
-
-* Reads planner_output
-* Reads BeneFIT data
-* Creates workout recommendation
-
-State Updated:
-
-fitness_output
-
-Response Builder:
-
-Combines outputs
-
-Discord receives final answer.
-
----
-
-# Scheduled Workflows
-
-CaesarOS supports autonomous scheduled tasks.
-
-## Morning Digest
-
-Trigger:
-
-8:00 AM
-
-Workflow:
-
-Email Agent
-↓
-Calendar Service
-↓
-Planner Agent
-↓
-Digest Builder
-↓
-Discord
-
-Output:
-
-Good Morning James
-
-* Important Emails
-* Daily Schedule
-* Priority Tasks
-* Workout Recommendation
-
----
-
-## Afternoon Check-In
-
-Trigger:
-
-2:00 PM
-
-Purpose:
-
-* Progress tracking
-* Schedule adjustments
-* Reminder generation
-
----
-
-## Evening Review
-
-Trigger:
-
-9:00 PM
-
-Purpose:
-
-* Review accomplishments
-* Evaluate goals
-* Prepare next day
-
----
-
-# Initial State Model
-
-user_input
-
-calendar_events
-
-tasks
-
-emails
-
-memory_context
-
-fitness_data
-
-planner_output
-
-fitness_output
-
-tutor_output
-
-email_output
-
-code_output
-
-final_response
-
----
-
-# Technology Stack
-
-Backend:
-FastAPI
-
-Agent Framework:
-LangGraph
-
-LLM:
-Claude / Bedrock
-
-Vector Database:
-ChromaDB (via Prodigy)
-
-Fitness Data:
-Firebase (via BeneFIT)
-
-Scheduling:
-APScheduler
-
-Discord Integration:
-discord.py
-
-Memory:
-Prodigy Retrieval Layer
-
-Version Control:
-GitHub
-
----
-
-# Long-Term Goal
-
-The long-term goal of CaesarOS is to become a personal AI operating system that unifies all previous projects into a single ecosystem.
-
-Rather than building disconnected applications, CaesarOS serves as the intelligence layer connecting:
-
-Prodigy
-BeneFIT
-Google Calendar
-Google Tasks
-Gmail
-GitHub
-Discord
-
-into a unified platform that assists with:
-
-Education
-Productivity
-Fitness
-Software Development
-Personal Organization
-
-CaesarOS is not intended to be another chatbot.
-
-It is intended to become an autonomous AI-powered operating system designed around my life, workflows, goals, and personal data ecosystem.
+Implementation references: [LangGraph Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api), [APScheduler 3.x](https://apscheduler.readthedocs.io/en/3.x/userguide.html), [Anthropic Messages API](https://platform.claude.com/docs/en/api/messages/create).

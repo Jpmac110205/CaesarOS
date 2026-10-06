@@ -1,79 +1,14 @@
-# agent.py
-import os
-import sys
-from pathlib import Path
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage, ToolMessage
-from tools import load_agent_prompt, query_prodigy_rag
+from agents.tutor.tools import retrieve
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-from assets.agentstate import AgentState
-
-
-load_dotenv()
-
-def run_tutoring_session(user_question: str) -> str:
-    """
-    Executes a LangChain invocation that binds local tools, reads 
-    the system prompt dynamically from storage, and executes the conversation loop.
-    """
-    # 1. Dynamically load the specific 200-line markdown prompt
-    system_instruction = load_agent_prompt("prompt.md")
-    
-    # 2. Build standard LangChain prompt template
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", system_instruction),
-        ("placeholder", "{messages}")
-    ])
-    
-    # 3. Initialize the model and bind native tools
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.3
-    )
-    
-    # Define our available tool array and bind it to the model
-    tools_list = [query_prodigy_rag]
-    llm_with_tools = llm.bind_tools(tools_list)
-    
-    # Compile the prompt chain setup
-    chain = prompt_template | llm_with_tools
-    
-    # 4. Initialize message state with user query
-    messages_state = [HumanMessage(content=user_question)]
-    
-    # First invocation to let the model decide if it needs the Prodigy Tool
-    response = chain.invoke({"messages": messages_state})
-    
-    # 5. Handle Tool Calling Loop if the model requested data access
-    if response.tool_calls:
-        messages_state.append(response) # Add model's tool request to history
-        
-        for tool_call in response.tool_calls:
-            if tool_call["name"] == "query_prodigy_rag":
-                # Execute the native python tool function directly
-                tool_output = query_prodigy_rag.invoke(tool_call["args"])
-                
-                # Append the result back to history matching LangChain specs
-                messages_state.append(
-                    ToolMessage(content=str(tool_output), tool_call_id=tool_call["id"])
-                )
-        
-        # Second invocation: Give the model the tool results so it can output the final formatted answer
-        final_response = chain.invoke({"messages": messages_state})
-        AgentState.tutor_output += final_response.content
-        return final_response.content
-    AgentState.tutor_output += response.content
-    return response.content
-
-if __name__ == "__main__":
-    print("--- Activating Caesar (LangChain Version) ---")
-    question = "explain what a kernel is in OS"
-    
-    explanation = run_tutoring_session(question)
-    print(explanation)
+async def run(state, ctx):
+    query = 'physics exam' if state['selected_workflow'] == 'daily_plan' else state['user_input']
+    docs = await retrieve(state, ctx, query)
+    if not docs:
+        summary = 'No matching demo course materials were found. Connect Prodigy or try physics, virtual memory, the kernel, or sliding window.'
+    else:
+        summary = '\n\n'.join(f"{d['title']}\n{d['content']}" for d in docs)
+    blocks = state['planner_output'].get('planned_blocks', [])
+    questions = ['Draw a free-body diagram for a block on an incline.', 'When can mechanical energy be treated as conserved?'] if any('physics' in d['id'] for d in docs) else ['Explain the concept in your own words.', 'Give one example and explain its failure cases.']
+    state['tutor_output'] = {'summary': summary, 'documents_used': [d['id'] for d in docs],
+                            'study_blocks': blocks, 'practice_questions': questions if docs else [],
+                            'needs_context': not bool(docs)}

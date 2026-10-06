@@ -1,80 +1,37 @@
-import os
-import sys
-from pathlib import Path
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage, ToolMessage
-from tools import load_agent_prompt, get_weather, get_news, get_calendar_events, get_tasks
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from agents.planner.tools import available_blocks, load_context, reserve
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-from assets.agentstate import AgentState
-
-
-load_dotenv()
-
-def run_planner_session(user_question: str) -> str:
-    """
-    Executes a LangChain invocation that binds local tools, reads 
-    the system prompt dynamically from storage, and executes the conversation loop.
-    """
-    # 1. Dynamically load the specific 200-line markdown prompt
-    system_instruction = load_agent_prompt("prompt.md")
-    
-    # 2. Build standard LangChain prompt template
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", system_instruction),
-        ("placeholder", "{messages}")
-    ])
-    
-    # 3. Initialize the model and bind native tools
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.3
-    )
-    
-    # Define our available tool array and bind it to the model
-    tools_list = [get_weather, get_news, get_calendar_events, get_tasks]
-    llm_with_tools = llm.bind_tools(tools_list)
-    
-    # Compile the prompt chain setup
-    chain = prompt_template | llm_with_tools
-    
-    # 4. Initialize message state with user query
-    messages_state = [HumanMessage(content=user_question)]
-    
-    # First invocation to let the model decide if it needs the Prodigy Tool
-    response = chain.invoke({"messages": messages_state})
-    
-    # 5. Handle Tool Calling Loop if the model requested data access
-    if response.tool_calls:
-        messages_state.append(response) # Add model's tool request to history
-        final_output = ""
-        #TODO: Implement a loop to handle multiple tool calls if needed
-        for tool_call in response.tool_calls:
-            if tool_call["name"] == "get_weather":
-                # Execute the native python tool function directly
-                final_output += get_weather.invoke(tool_call["args"])
-            elif tool_call["name"] == "get_news":
-                final_output += get_news.invoke(tool_call["args"])
-            elif tool_call["name"] == "get_calendar_events":
-                final_output += get_calendar_events.invoke(tool_call["args"])
-            elif tool_call["name"] == "get_tasks":
-                final_output += get_tasks.invoke(tool_call["args"])
-        
-        # Second invocation: Give the model the tool results so it can output the final formatted answer
-        final_response = chain.invoke({"messages": messages_state + [ToolMessage(content=final_output, tool_call_id=tool_call["id"])]})
-        AgentState.planner_output += final_response.content
-        return final_response.content
-    AgentState.planner_output += response.content
-    return response.content
-
-if __name__ == "__main__":
-    print("--- Activating Caesar (LangChain Version) ---")
-    question = "explain what a kernel is in OS"
-    
-    explanation = run_planner_session(question)
-    print(explanation)
+async def run(state, ctx):
+    await load_context(state, ctx)
+    day = datetime.fromisoformat(ctx.store.data()['date']).replace(tzinfo=ZoneInfo(state['timezone']))
+    workflow = state['selected_workflow']
+    if workflow == 'evening_review':
+        day += timedelta(days=1)
+    free = available_blocks(state['calendar_events'], day.replace(hour=17), day.replace(hour=22, minute=30))
+    pending = sorted((t for t in state['tasks'] if not t['completed']), key=lambda t: (t['priority'], t['due']))
+    blocks = []
+    titles = []
+    if workflow == 'study':
+        titles = [('Study · concepts and worked examples', 60), ('Study · applications', 45), ('Study · practice problems', 30)]
+    elif workflow == 'interview':
+        interview = state['email_output'].get('interview')
+        if interview:
+            titles = [('Technical interview preparation · ' + interview['sender'], 90)]
+    elif workflow in {'daily_plan', 'morning_digest'}:
+        titles = [(pending[0]['title'], pending[0]['minutes'])] if pending else []
+        if workflow == 'daily_plan' and len(pending) > 1:
+            titles += [(pending[1]['title'], pending[1]['minutes'])]
+    elif workflow == 'afternoon_checkin':
+        titles = [(t['title'], t['minutes']) for t in pending[:2]]
+    for title, minutes in titles:
+        allocated = reserve(free, minutes, title, earliest_hour=19)
+        if allocated:
+            blocks.append(allocated)
+    completed = sum(t['completed'] for t in state['tasks'])
+    summary = f"{len(free)} remaining time windows; {len(pending)} open priorities."
+    if workflow == 'evening_review':
+        summary = f"{completed}/{len(state['tasks'])} tasks complete. Tomorrow’s first priority: {pending[0]['title'] if pending else 'no outstanding tasks'}."
+    state['planner_output'] = {'summary': summary, 'date': day.date().isoformat(),
+        'available_blocks': free, 'planned_blocks': blocks, 'priorities': pending,
+        'completed_tasks': completed, 'planning_basis': 'Synthetic demo day, 5 PM–10:30 PM'}

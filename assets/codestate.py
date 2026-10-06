@@ -1,5 +1,8 @@
-class codeState:
-    coder_output: str = ""
-    testing_output: str = ""
-    critiquing_output: str = ""
-    final_output: str = ""
+from typing import TypedDict
+
+class CodeState(TypedDict):
+    coder_output: dict
+    testing_output: dict
+    critiquing_output: dict
+
+codeState = CodeState

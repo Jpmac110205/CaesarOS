@@ -1,77 +1,12 @@
-# agent.py
-import os
-import json
-import sys
-from pathlib import Path
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from agents.email.tools import load_context
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-from assets.agentstate import AgentState
-from tools import get_unread_emails, load_agent_prompt
-
-load_dotenv()
-
-def run_inbox_agent(time_of_day: str = "MORNING") -> str:
-    """
-    Executes the Inbox agent using LangChain components. Loads rules dynamically,
-    batches raw email payloads, and enforces deterministic formatting.
-    """
-    current_time_str = datetime.now().strftime("%Y-%m-%d at %I:%M %p")
-    
-    # 1. Dynamically load the system prompt file from disk
-    system_instruction = load_agent_prompt("prompt.md")
-    
-    # 2. Pull data using your utility function
-    last_run = (datetime.now() - timedelta(hours=4)).isoformat()
-    raw_emails = get_unread_emails(last_run_timestamp=last_run)
-    
-    if not raw_emails:
-        return f"📬 No new emails since last digest window. Inbox is clear."
-        
-    # 3. Format the data payload
-    user_payload = {
-        "run_metadata": {
-            "requested_digest": time_of_day,
-            "current_time": current_time_str,
-            "total_fetched": len(raw_emails)
-        },
-        "emails": raw_emails
-    }
-    
-    # 4. Construct the LangChain Prompt and Chain pipeline
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", system_instruction),
-        ("human", "Analyze and digest the following email data:\n\n{email_data}")
-    ])
-    
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.1  # Matches your original low temperature requirement for strict formatting
-    )
-    
-    # Build the chain
-    chain = prompt_template | llm
-    
-    # 5. Invoke the chain safely
-    try:
-        response = chain.invoke({
-            "email_data": json.dumps(user_payload, indent=2)
-        })
-        AgentState.email_output += response.content  # Store the output in AgentState for later use
-        return response.content
-        
-    except Exception as e:
-        # Edge case error handler formatting specified by system prompt
-        error_msg = f"⚠️ Email digest failed to run at {current_time_str}. Check connection or permissions. Error: {str(e)}"
-        return error_msg
-
-if __name__ == "__main__":
-    print("--- Running Inbox Agent (LangChain Version) ---")
-    digest = run_inbox_agent(time_of_day="AFTERNOON")
-    print(digest)
+async def run(state, ctx):
+    await load_context(state, ctx)
+    important = sorted((e for e in state['emails'] if e['action_required']), key=lambda e: e['deadline'] or '')
+    interview = next((e for e in important if e['category'] == 'interview'), None)
+    state['email_output'] = {'summary': f"{len(important)} messages need attention; {len(state['emails']) - len(important)} can wait.",
+        'important_emails': important,
+        'classifications': [{'id': e['id'], 'priority': 'high' if e['action_required'] else 'low', 'category': e['category']} for e in state['emails']],
+        'interview': interview,
+        'draft': 'Hi Alex, thank you for the invitation. I confirm my attendance and look forward to the technical interview. Best regards.' if interview else None,
+        'draft_status': 'Draft only · never sent'}
