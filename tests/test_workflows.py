@@ -14,7 +14,7 @@ from caesaros.state.workflow_state import TERMINAL
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings(database=tmp_path / 'demo.sqlite3', step_delay=0)
+    return Settings(database=tmp_path / 'demo.sqlite3', step_delay=0, api_key='test-openai', jev_api_key='test-openrouter')
 
 
 @pytest.fixture
@@ -206,10 +206,50 @@ def test_retry_and_failure_do_not_claim_completion(client):
 
 
 def test_cancel_running_workflow(tmp_path):
-    settings = Settings(database=tmp_path/'cancel.sqlite3', step_delay=.2)
+    settings = Settings(database=tmp_path/'cancel.sqlite3', step_delay=.2, api_key='test-openai', jev_api_key='test-openrouter')
     with TestClient(create_app(settings)) as client:
         state = client.post('/api/runs', json={'user_input': 'Fit a workout into today'}).json()
         result = client.post('/api/runs/'+state['id']+'/cancel')
         assert result.status_code == 200
         assert result.json()['workflow_status'] == 'cancelled'
         assert not result.json()['proposed_actions']
+
+
+def test_provider_configuration_is_visible_without_exposing_keys(client):
+    health = client.get('/api/health').json()
+    assert health['reasoner'] == 'openai' and health['router'] == 'openrouter/jev'
+    overview = client.get('/api/overview').json()
+    integrations = {item['name']: item['status'] for item in overview['integrations']}
+    assert integrations['OpenAI'] == integrations['Jev / OpenRouter'] == 'configured'
+    assert integrations['Prodigy'] == 'demo'
+    assert 'test-openai' not in str(overview) and 'test-openrouter' not in str(overview)
+
+
+def test_model_outputs_and_real_usage_flow_through_graph(client):
+    result = run(client, 'I got an interview email. Help me prepare.')
+    assert result['email_output']['draft'] == 'Provider-generated reply draft.'
+    assert result['code_output']['coder_output']['artifact'] == 'print(1)'
+    assert result['code_output']['testing_output']['cases'] == ['Verify the expected output.']
+    assert result['code_output']['critiquing_output']['notes'] == ['Review input validation.']
+    assert all('category' not in email and 'action_required' not in email for email in result['emails'])
+    providers = {item['provider'] for item in result['metrics']['provider_calls']}
+    assert providers == {'openai', 'openrouter/jev'}
+    assert result['metrics']['model_calls'] == len(result['metrics']['provider_calls'])
+    assert result['metrics']['input_tokens'] > 0
+
+
+@pytest.mark.parametrize('provider', ['api.openai.com', 'openrouter.ai'])
+def test_provider_http_failure_marks_workflow_failed(client, monkeypatch, provider):
+    import httpx
+    from conftest import REAL_ASYNC_CLIENT
+    def reject(request):
+        assert request.url.host == provider
+        return httpx.Response(401, json={'error': 'sensitive provider details'})
+    monkeypatch.setattr(httpx, 'AsyncClient', lambda **kwargs: REAL_ASYNC_CLIENT(
+        **kwargs, transport=httpx.MockTransport(reject)))
+    # Explicit workflow bypasses Jev to isolate the OpenAI failure.
+    result = run(client, 'Fit a workout into today', workflow='workout' if provider == 'api.openai.com' else 'auto')
+    assert result['workflow_status'] == 'failed'
+    assert not result['final_response'] and not result['proposed_actions']
+    assert 'sensitive' not in result['error']
+    assert result['metrics']['model_calls'] == 0

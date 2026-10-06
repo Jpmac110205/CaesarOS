@@ -10,6 +10,7 @@ import httpx
 from caesaros.graphs.main_graph import build_graph
 from caesaros.services.catalog import DemoServices
 from caesaros.services.reasoning import Reasoner
+from caesaros.services.jev import Jev
 from caesaros.state.workflow_state import TERMINAL, new_state
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,8 @@ def label_time(value, timezone):
 class Runtime:
     def __init__(self, store, settings):
         self.store, self.settings = store, settings
-        self.services, self.reasoner = DemoServices(store), Reasoner(settings)
+        self.services, self.reasoner = DemoServices(store), Reasoner(settings, save=self.save)
+        self.jev = Jev(settings, save=self.save)
         self.graph = build_graph(self)
         self.tasks = {}
         self.semaphore = asyncio.Semaphore(4)
@@ -73,13 +75,17 @@ class Runtime:
                 try:
                     await run(state, self)
                     output = state[f'{name}_output']
-                    output['summary'] = await self.reasoner.narrate(name, state, output)
+                    if name in {'planner', 'fitness', 'code'}:
+                        output['summary'] = await self.reasoner.narrate(name, state, output)
                     break
                 except (httpx.TransportError, httpx.HTTPStatusError, ConnectionError) as exc:
                     transient = not isinstance(exc, httpx.HTTPStatusError) or exc.response.status_code in {429, 500, 502, 503, 504}
                     if not transient or attempt == 2:
                         raise
+                    # Keep accounting for successful calls before a later stage failed.
+                    metrics = state['metrics']
                     state = baseline
+                    state['metrics'] = metrics
                     state['metrics']['retries'] += 1
                     self.event(state, name, 'Transient provider failure; retrying once.')
                     self.save(state)

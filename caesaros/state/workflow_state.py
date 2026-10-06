@@ -13,7 +13,7 @@ class WorkflowState(TypedDict):
     requested_workflow: str
     selected_workflow: str
     intent: str
-    confidence_scores: dict[str, float]
+    confidence_scores: dict[str, float | None]
     decision: dict[str, Any]
     workflow_status: str
     current_agent: str | None
@@ -63,4 +63,4 @@ def new_state(request: RunRequest, timezone: str) -> WorkflowState:
         fitness_output={}, email_output={}, code_output={}, tool_results=[], sources=[],
         events=[], proposed_actions=[], final_response='',
         metrics={'duration_ms': 0, 'input_tokens': 0, 'output_tokens': 0, 'retries': 0,
-                 'model_calls': 0, 'reasoner': 'demo'}, error=None)
+                 'model_calls': 0, 'reasoner': 'openai', 'provider_calls': []}, error=None)

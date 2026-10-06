@@ -19,7 +19,7 @@
       <button class="nav-item" data-view="automations"><span>◷</span> Automations</button>
       <button class="nav-item" data-view="integrations"><span>⌘</span> Integrations</button>
     </nav>
-    <div class="sidebar-note"><span class="status-dot"></span> SYSTEM PHILOSOPHY<p>Jev decides.<br>Claude reasons.<br>Python executes.<br>CaesarOS coordinates.</p><a href="/docs" target="_blank" rel="noopener">Explore the API ↗</a></div>
+    <div class="sidebar-note"><span class="status-dot"></span> SYSTEM PHILOSOPHY<p>Jev decides.<br>OpenAI reasons.<br>Python executes.<br>CaesarOS coordinates.</p><a href="/docs" target="_blank" rel="noopener">Explore the API ↗</a></div>
     <div class="sidebar-bottom"><span class="avatar small">C</span><div>Agents Mode<small>Prodigy client preview · v0.1</small></div></div>
   </aside>
   <div class="shell">
@@ -52,15 +52,15 @@
             <section class="panel"><div class="panel-heading"><h2>Today’s context</h2><span class="subtle-tag">SAMPLE DAY</span></div><div id="calendar-list"></div><div class="panel-footnote">Recommendations use this sample day’s evening availability.</div></section>
             <section class="panel"><div class="panel-heading"><h2>Open loops</h2><span id="task-count" class="count-badge">0</span></div><div id="task-list"></div><div class="panel-footnote">Mark tasks complete. The next workflow will pick up the change.</div></section>
             <section class="fitness-card"><span class="eyebrow">BeneFIT · SAMPLE CONTEXT</span><div class="fitness-heading"><h2>Make room<br>for movement.</h2><span>↗</span></div><p id="fitness-context"></p><button class="button dark" data-prompt="Can I fit a workout into my schedule today?">Find a time <span>→</span></button></section>
-            <div class="context-note"><span>◎</span><p>Demo decisions and responses use local rules and templates. Connect Claude for live reasoning and your services for personal context.</p></div>
+            <div class="context-note"><span>◎</span><p>OpenAI generates responses; Jev makes decisions through OpenRouter. Calendar, email, course notes, fitness and repository context are synthetic sample data. Approved events are saved locally.</p></div>
           </aside>
         </div>
       </section>
       <section id="history-view" class="view hidden"><div class="panel"><div class="panel-heading"><h2>Workflow history</h2><button class="button small" id="refresh-history">Refresh</button></div><div id="history-list"></div></div></section>
       <section id="automations-view" class="view hidden"><div class="info-note">Schedules run while this backend is running. Digests appear in history and the local notification feed. Calendar writes require approval.</div><div id="schedule-list" class="schedule-grid"></div><section class="panel"><div class="panel-heading"><h2>Notification feed</h2><span class="subtle-tag">LOCAL DELIVERY</span></div><div id="notification-list"></div></section></section>
-      <section id="integrations-view" class="view hidden"><div class="info-note">Sample services let you explore the complete workflow without credentials. Each integration has an adapter boundary and a documented TODO in <code>docs/INTEGRATIONS.md</code>.</div><div id="integration-list" class="integration-grid"></div><section class="panel"><div class="panel-heading"><div><h2>Reset the sample day</h2><p>Restore sample tasks, calendar, memory and notifications. History stays; old pending actions are rejected.</p></div><button class="button" id="reset-button">Reset demo data</button></div></section></section>
+      <section id="integrations-view" class="view hidden"><div class="info-note">OpenAI and Jev use real API calls and require keys. Other integrations currently return synthetic sample data. Remaining adapters are documented in <code>docs/INTEGRATIONS.md</code>.</div><div id="integration-list" class="integration-grid"></div><section class="panel"><div class="panel-heading"><div><h2>Reset the sample day</h2><p>Restore sample tasks, calendar, memory and notifications. History stays; old pending actions are rejected.</p></div><button class="button" id="reset-button">Reset demo data</button></div></section></section>
     </main>
-    <footer>CAESAROS <span>Built around your life. Connected through shared state.</span><span id="footer-mode">LOCAL DEMO / NO KEYS REQUIRED</span></footer>
+    <footer>CAESAROS <span>Built around your life. Connected through shared state.</span><span id="footer-mode">OPENAI + JEV / SAMPLE DATA</span></footer>
   </div>
 </body>
 </html>

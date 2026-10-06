@@ -10,5 +10,5 @@ Run it with:
 
 The current cases are smoke tests that protect obvious routing behavior. A `10/10` result does not establish real-world accuracy or confidence calibration.
 
-When Jev is connected, add a versioned, held-out dataset that includes ambiguous requests, multi-domain requests, adversarial content, and requests that should ask for clarification. Track per-workflow precision/recall, calibration, latency, tokens, cost, retries, and failure rate. Keep evaluation data separate from the examples used to tune the router.
+The evaluator calls live Jev and consumes OpenRouter credits. Add a versioned, held-out dataset that includes ambiguous requests, multi-domain requests, adversarial content, and requests that should ask for clarification. Track per-workflow precision/recall, calibration, latency, tokens, cost, retries, and failure rate. Keep evaluation data separate from the examples used to tune the router.
 

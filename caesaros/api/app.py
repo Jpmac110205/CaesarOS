@@ -17,6 +17,7 @@ from caesaros.state.workflow_state import TERMINAL
 
 def create_app(settings=None):
     settings = settings or Settings.from_env()
+    settings.validate()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -29,7 +30,7 @@ def create_app(settings=None):
         await app.state.runtime.close()
 
     app = FastAPI(title='CaesarOS', version='0.1.0', lifespan=lifespan,
-                  description='Local orchestration demo. Integrations use explicitly labeled synthetic data.')
+                  description='Live OpenAI reasoning and OpenRouter Jev decisions with labeled synthetic integration data.')
     app.mount('/static', StaticFiles(directory=ROOT / 'frontend'), name='static')
 
     def get_run(run_id):
@@ -44,23 +45,25 @@ def create_app(settings=None):
 
     @app.get('/api/health')
     async def health():
-        return {'status': 'ok', 'reasoner': settings.reasoner, 'data_mode': 'demo', 'timezone': settings.timezone}
+        return {'status': 'ok', 'reasoner': settings.reasoner, 'router': 'openrouter/jev',
+                'data_mode': 'demo', 'timezone': settings.timezone,
+                'models': {'reasoner': settings.openai_model, 'router': settings.jev_model}}
 
     @app.get('/api/overview')
     async def overview():
         data = app.state.store.data()
         runs = app.state.store.runs()
         return {'data': data, 'schedules': app.state.scheduler.list(),
-                'mode': {'data': 'demo', 'reasoner': settings.reasoner, 'router': 'demo rules (Jev adapter)', 'timezone': settings.timezone},
+                'mode': {'data': 'demo', 'reasoner': settings.reasoner, 'router': 'openrouter/jev', 'timezone': settings.timezone},
                 'workflows': WORKFLOWS,
                 'integrations': [{'name': name, 'status': 'demo', 'todo': todo} for name, todo in [
                     ('Google Calendar & Tasks', 'OAuth + normalized calendar/task adapters'),
                     ('Gmail', 'Read-only OAuth + Gmail adapter'),
                     ('Prodigy', 'User-scoped retrieval and memory APIs'),
                     ('BeneFIT', 'Authenticated workout history API'),
-                    ('GitHub', 'Fine-grained read-only token + repository adapter'),
-                    ('Jev', 'Bounded classifier adapter and confidence calibration')]] + [
-                    {'name': 'Claude', 'status': 'live' if settings.reasoner == 'claude' else 'demo', 'todo': 'Set reasoner, API key and model ID in .env'},
+                    ('GitHub', 'Fine-grained read-only token + repository adapter')]] + [
+                    {'name': 'Jev / OpenRouter', 'status': 'configured', 'todo': f'{settings.jev_model}: real decisions API; usage recorded per call'},
+                    {'name': 'OpenAI', 'status': 'configured', 'todo': f'{settings.openai_model}: real Responses API; usage recorded per call'},
                     {'name': 'Discord', 'status': 'setup required', 'todo': 'Set bot token, owner and channel; start the client separately'}],
                 'metrics': {'runs': len(runs), 'completed': sum(r['workflow_status'] in {'completed', 'awaiting_approval'} for r in runs),
                             'pending': sum(a['status'] == 'pending' for r in runs for a in r['proposed_actions']),

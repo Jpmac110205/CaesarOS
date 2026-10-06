@@ -11,5 +11,4 @@ The browser posts a workflow, then subscribes to `/api/runs/{id}/events`. Every 
 
 All server content is escaped before insertion into HTML. The UI has no credentials and no direct provider access. It is a local preview of the Agents Mode that can later be rebuilt within Prodigy's React application against the same API.
 
-There is no frontend build step. Start the backend and visit `http://127.0.0.1:8000`. When changing the UI, verify both wide and mobile layouts and test a complete workflow through action approval.
-
+Run `npm run dev` from the project root and visit `http://127.0.0.1:8000`. The launcher automatically prepares Python dependencies and starts FastAPI with backend reload; it serves the dashboard in the same process. There is no frontend build step or npm dependency installation. Refresh the browser after frontend edits. When changing the UI, verify both wide and mobile layouts and test a complete workflow through action approval.

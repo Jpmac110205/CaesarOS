@@ -1,3 +1,9 @@
-def critique(proposal, testing):
-    return {'status': 'reviewed', 'notes': ['Keep credentials in service adapters.',
-            'Use shared state rather than direct agent calls.', 'Run the generated test cases before using an artifact.']}
+from caesaros.services.model_outputs import CritiqueResult
+
+
+async def critique(state, ctx, proposal, testing):
+    generated = await ctx.reasoner.generate('code', state, CritiqueResult,
+        'Perform the critique stage: review the actual coding proposal and proposed tests. '
+        'Identify concrete defects, missing cases and improvements. Do not claim any tests passed.',
+        coding_proposal=proposal, testing=testing)
+    return {**generated, 'status': 'reviewed'}

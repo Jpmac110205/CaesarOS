@@ -21,12 +21,12 @@ def seed_data(timezone: str) -> dict:
         'emails': [
             {'id': 'recruiter', 'sender': 'Alex · Example Labs', 'subject': 'Software engineering interview',
              'body': 'Your technical interview is in two days at noon. Please confirm attendance. Prepare arrays, hash maps, and sliding window problems.',
-             'category': 'interview', 'action_required': True, 'deadline': at(12, 0, 2)},
+             'deadline': at(12, 0, 2)},
             {'id': 'course', 'sender': 'Physics course team', 'subject': 'Exam preparation materials',
              'body': 'Review forces, work and energy before the exam. Your problem set is due tomorrow.',
-             'category': 'coursework', 'action_required': True, 'deadline': at(23, 59, 1)},
+             'deadline': at(23, 59, 1)},
             {'id': 'newsletter', 'sender': 'Developer Weekly', 'subject': 'This week in engineering',
-             'body': 'Weekly articles and community updates.', 'category': 'newsletter', 'action_required': False, 'deadline': None}],
+             'body': 'Weekly articles and community updates.', 'deadline': None}],
         'documents': [
             {'id': 'physics-forces', 'title': 'Physics · Forces & Newton’s laws', 'tags': ['physics', 'forces', 'newton', 'exam'],
              'content': 'Draw a free-body diagram. Resolve forces into components. Apply ΣF = ma separately on each axis. Weight is mg; normal force depends on contact geometry. A balanced net force means zero acceleration.', 'source': 'Demo Prodigy / Physics notes'},

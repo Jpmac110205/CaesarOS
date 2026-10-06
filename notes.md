@@ -1,7 +1,7 @@
-# Demo implemented
+# Current implementation
 
-The working implementation and startup instructions are in README.md. Integration TODOs and user setup are in docs/INTEGRATIONS.md and at the adapter boundaries in caesaros/services/catalog.py, services/reasoning.py and decision/router.py.
+See README.md for the component inventory and startup. OpenAI generation and OpenRouter Jev decisions are required; simulated inference and Claude mode have been removed. API keys come from the existing root .env.
 
-Completed: FastAPI, real LangGraph workflows, isolated typed state, five agents, Code stages, SQLite history, SSE dashboard, approvals/local calendar execution, task completion, scheduled digests/check-ins/reviews, memory/notification feed, optional Claude reasoning, API-based Discord client and integration tests.
+Real components: FastAPI, LangGraph, typed shared state, model output validation, SQLite history, SSE dashboard, local approval execution, scheduling, local memory/notifications, and the separately configured Discord client.
 
-Remaining user setup: Jev inference interface, external service API contracts and credentials, Prodigy React Agents Mode integration, and production hosting/authentication.
+Remaining placeholders: synthetic integration data in services/fixtures.py and DemoServices, external Google/Prodigy/BeneFIT/GitHub adapters, email sending, external notifications, repository modification/code execution, and production authentication/hosting. Provider HTTP fixtures exist only under tests.

@@ -7,5 +7,4 @@ At 0.65–0.89, escalate to the reasoning provider; below 0.65 ask for clarifica
 LangGraph owns execution order and state. Never call an agent directly.
 All calendar writes still require explicit action approval.
 
-TODO(JEV): Bind your actual inference model to the validated routing contract.
-The executable demo currently uses deterministic rules rather than this prompt.
+The live adapter asks a typed Jev Choice question through OpenRouter. Jev returns a choice and confidence; Python applies the gates. OpenAI resolves medium-confidence choices.

@@ -44,5 +44,5 @@ sequenceDiagram
 | `scheduling/` | Morning, afternoon, and evening job definitions |
 | `evaluation/` | Transparent routing smoke evaluation |
 
-`config.py` reads environment settings and validates timezone/reasoner choices. `main.py` is an alternative ASGI entry point. The package does not import the frontend or Discord client into its reasoning logic, so new clients can use the same API.
+`config.py` reads environment settings and validates timezone, required OpenAI/OpenRouter keys and configured models. `main.py` is an alternative ASGI entry point. The package does not import the frontend or Discord client into its reasoning logic, so new clients can use the same API.
 

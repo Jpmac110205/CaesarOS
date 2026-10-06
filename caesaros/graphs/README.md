@@ -10,7 +10,7 @@ This folder contains CaesarOS's execution engine.
 - marks the current agent and records events;
 - wraps service calls as visible tool results;
 - retries transient network/provider failures once;
-- optionally asks Claude to narrate structured results;
+- requires OpenAI summaries for Planner, Fitness and Code; other agents generate structured content directly;
 - persists snapshots throughout execution;
 - builds the final response and action proposals;
 - handles cancellation, shutdown, and safe failure messages;

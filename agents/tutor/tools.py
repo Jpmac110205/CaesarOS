@@ -4,7 +4,7 @@ async def retrieve(state, ctx, query):
     if not state['memory_context']:
         state['memory_context'] = await ctx.tool(state, 'memory.retrieve', ctx.services.memory)
     candidates = await ctx.tool(state, 'prodigy.retrieve', lambda: ctx.services.documents(query))
-    docs = filter_documents(query, candidates)
+    docs = await filter_documents(state, ctx.jev, query, candidates)
     state['retrieved_documents'] = docs
     for doc in docs:
         if not any(s['id'] == doc['id'] for s in state['sources']):

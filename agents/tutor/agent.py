@@ -1,14 +1,18 @@
 from agents.tutor.tools import retrieve
+from caesaros.services.model_outputs import TutorResult
+
 
 async def run(state, ctx):
-    query = 'physics exam' if state['selected_workflow'] == 'daily_plan' else state['user_input']
+    priorities = state['planner_output'].get('priorities', [])
+    query = state['user_input']
+    if state['selected_workflow'] == 'daily_plan' and priorities:
+        query += '\nSelected priorities: ' + ', '.join(t['title'] for t in priorities)
     docs = await retrieve(state, ctx, query)
-    if not docs:
-        summary = 'No matching demo course materials were found. Connect Prodigy or try physics, virtual memory, the kernel, or sliding window.'
-    else:
-        summary = '\n\n'.join(f"{d['title']}\n{d['content']}" for d in docs)
-    blocks = state['planner_output'].get('planned_blocks', [])
-    questions = ['Draw a free-body diagram for a block on an incline.', 'When can mechanical energy be treated as conserved?'] if any('physics' in d['id'] for d in docs) else ['Explain the concept in your own words.', 'Give one example and explain its failure cases.']
-    state['tutor_output'] = {'summary': summary, 'documents_used': [d['id'] for d in docs],
-                            'study_blocks': blocks, 'practice_questions': questions if docs else [],
-                            'needs_context': not bool(docs)}
+    generated = await ctx.reasoner.generate('tutor', state, TutorResult,
+        'Answer the educational request from the retrieved documents and generate relevant practice_questions. '
+        'Cite document IDs or titles. If no matching documents exist, explain the missing context and '
+        'return no practice questions. Do not substitute a canned lesson.')
+    if not docs and generated['practice_questions']:
+        raise ValueError('Tutor generated practice without source context')
+    state['tutor_output'] = {**generated, 'documents_used': [d['id'] for d in docs],
+        'study_blocks': state['planner_output'].get('planned_blocks', []), 'needs_context': not bool(docs)}

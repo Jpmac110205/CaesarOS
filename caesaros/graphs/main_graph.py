@@ -1,5 +1,5 @@
 from copy import deepcopy
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import END, START, StateGraph  # type: ignore[import-not-found]
 from caesaros.decision.router import WORKFLOWS, route
 from caesaros.state.workflow_state import WorkflowState
 
@@ -8,7 +8,7 @@ def build_graph(ctx):
     """Agents read/write state; conditional graph edges own their execution order."""
     async def decide(original):
         state = deepcopy(original)
-        decision = route(state['user_input'], state['requested_workflow'])
+        decision = await route(state, ctx.jev)
         state.update(decision=decision, selected_workflow=decision['workflow'], intent=decision['workflow'],
                      workflow_status='running', current_agent='router')
         state['confidence_scores']['routing'] = decision['confidence']

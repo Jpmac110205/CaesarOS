@@ -39,7 +39,7 @@ async function refresh() {
   $('#connection-dot').classList.remove('offline');
   $('#demo-date').textContent = new Date(overview.data.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   $('#timezone').textContent = overview.mode.timezone;
-  $('#footer-mode').textContent = overview.mode.reasoner === 'claude' ? 'LIVE CLAUDE / DEMO DATA' : 'LOCAL DEMO / NO KEYS REQUIRED';
+  $('#footer-mode').textContent = 'OPENAI + JEV / SAMPLE DATA';
   const m = overview.metrics;
   $('#metrics').innerHTML = [
     ['◈','Specialized agents','05','One shared state'],['↗','Workflows run',m.runs,'Recent 50 runs'],
@@ -64,10 +64,10 @@ function renderCrew() {
   $('#run-status').className = 'pill '+(status==='running'||status==='queued'?'running':status==='failed'?'failed':'');
   $('#routing-title').textContent = current.selected_workflow ? title(current.selected_workflow)+' · '+title(current.decision.gate) : 'Jev · Decision layer';
   $('#routing-description').textContent = current.decision.escalation || current.decision.reason || 'Routing your request…';
-  $('#confidence').textContent = current.decision.confidence ? Math.round(current.decision.confidence*100)+'%' : '—';
-  $('#confidence').title = 'Demo rule confidence; not a calibrated model probability';
+  $('#confidence').textContent = current.decision.confidence == null ? '—' : Math.round(current.decision.confidence*100)+'%';
+  $('#confidence').title = current.decision.provider === 'user selection' ? 'Explicit workflow; no model confidence' : current.decision.provider === 'openrouter/jev' ? 'Confidence returned by Jev through OpenRouter' : 'Historical rule-based score; not returned by Jev';
   $('#workflow-path').innerHTML = ['REQUEST','ROUTER',...current.agent_sequence.map(n=>n.toUpperCase()),'RESPONSE'].map(escapeHTML).join('<span>→</span>');
-  $('#run-meta').textContent = `${current.id.slice(0,8)} · ${(current.metrics.duration_ms/1000).toFixed(1)}s · ${current.tool_results.length} tool calls`;
+  $('#run-meta').textContent = `${current.id.slice(0,8)} · ${(current.metrics.duration_ms/1000).toFixed(1)}s · ${current.tool_results.length} tool calls · ${current.metrics.model_calls} model calls`;
   $('#cancel-button').classList.toggle('hidden',terminal.has(status));
 }
 function renderOutput() {
@@ -76,6 +76,8 @@ function renderOutput() {
   let content='';
   if(activeTab==='response') {
     content = `<div class="response-request">${escapeHTML(r.user_input)}</div>`;
+    if(r.metrics.reasoner === 'demo') content += '<div class="info-note">Historical run using simulated reasoning. Submit the request again to use OpenAI and Jev.</div>';
+    else if(r.metrics.reasoner === 'claude') content += '<div class="info-note">Historical run using Claude narration and rule-based routing. New requests use OpenAI and Jev.</div>';
     if(r.error) content += `<div class="error-banner">${escapeHTML(r.error)}</div><button class="button" data-retry="${r.id}">Retry request ↗</button>`;
     else if(!r.final_response) content += `<div class="empty-state"><div class="empty-symbol">◌</div><h3>${r.current_agent ? title(r.current_agent)+' is working' : 'Workflow queued'}</h3><p>Follow progress in Activity or inspect Shared state.</p></div>`;
     else content += `<div class="response-text">${escapeHTML(r.final_response)}</div>`;

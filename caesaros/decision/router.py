@@ -1,5 +1,4 @@
-import re
-
+"""Workflow allowlist and live Jev intent routing; no keyword classifier."""
 WORKFLOWS = {
     'workout': ['planner', 'fitness'], 'study': ['planner', 'tutor'],
     'interview': ['email', 'planner', 'code'],
@@ -8,38 +7,33 @@ WORKFLOWS = {
     'morning_digest': ['email', 'planner', 'fitness'],
     'afternoon_checkin': ['planner'], 'evening_review': ['email', 'planner']}
 
+WORKFLOW_DESCRIPTIONS = {
+    'workout': 'Find time for exercise and recommend training.',
+    'study': 'Allocate study time and teach from course materials for an exam or class.',
+    'interview': 'Read interview email, allocate preparation time, and prepare technical practice.',
+    'daily_plan': 'Coordinate multiple personal priorities across the day or evening.',
+    'tutor': 'Explain or teach a concept without scheduling a study session.',
+    'email': 'Summarize or prioritize an inbox and draft a reply.',
+    'code': 'Help with software implementation, debugging or architecture.',
+    'morning_digest': 'Produce a morning summary of messages, calendar and fitness.',
+    'afternoon_checkin': 'Review progress and remaining priorities in the afternoon.',
+    'evening_review': 'Review completed tasks and prepare tomorrow.',
+    'clarify': 'The request is unclear, unsupported, or lacks a goal.'}
 
-def contains(text, phrases):
-    return any(re.search(r'\b' + re.escape(word) + r'\b', text) for word in phrases)
 
-
-def route(user_input: str, requested='auto') -> dict:
-    """Jev stand-in: scores are inspectable rules, not calibrated probabilities.
-
-    TODO(JEV): Replace with your model, validate against WORKFLOWS, and calibrate
-    confidence on labeled requests. No Jev endpoint contract was supplied.
-    """
-    q = user_input.lower()
-    rules = [
-        (['morning digest', 'good morning'], 'morning_digest', .98, 'Summarize email, calendar and fitness.'),
-        (['evening review', 'review my day'], 'evening_review', .97, 'Review completed and remaining tasks.'),
-        (['check-in', 'check my progress', 'remaining priorities'], 'afternoon_checkin', .95, 'Re-evaluate unfinished tasks.'),
-        (['interview', 'recruiter', 'technical assessment'], 'interview', .96, 'Extract interview details, find time, prepare technical practice.'),
-        (['workout', 'gym', 'fitness', 'exercise'], 'workout', .96, 'Check availability before recommending a workout.'),
-        (['exam', 'study tonight', 'study plan', 'prepare for class'], 'study', .94, 'Combine available time with retrieved course notes.'),
-        (['explain', 'teach', 'virtual memory', 'kernel', 'physics', 'newton'], 'tutor', .95, 'Answer an educational question using personal documents.'),
-        (['email', 'inbox', 'mail'], 'email', .95, 'Prioritize communication and prepare a draft.'),
-        (['code', 'debug', 'github', 'architecture', 'repository', 'software'], 'code', .94, 'Inspect project context and build an engineering plan.'),
-        (['what should i do', 'what i should do', 'plan my day', 'plan tonight', 'plan my evening', 'daily plan', 'schedule today'], 'daily_plan', .93, 'Coordinate deadlines, communication, study and fitness.'),
-        (['organize', 'priorities', 'productive', 'help me plan'], 'daily_plan', .78, 'Planning intent is plausible; escalate the bounded decision.')]
+async def route(state, jev):
+    requested = state['requested_workflow']
     if requested != 'auto':
-        workflow, confidence, reason = requested, 1., 'Explicit workflow selected by the user.'
-    else:
-        workflow, confidence, reason = '', .4, 'Intent is unclear; ask for a goal before executing agents.'
-        for phrases, chosen, score, explanation in rules:
-            if contains(q, phrases):
-                workflow, confidence, reason = chosen, score, explanation
-                break
-    return {'workflow': workflow, 'confidence': confidence, 'reason': reason,
-            'provider': 'demo rules (Jev adapter)',
-            'gate': 'execute' if confidence >= .9 else 'escalate' if confidence >= .65 else 'clarify'}
+        if requested not in WORKFLOWS:
+            raise ValueError('Unsupported requested workflow')
+        return {'workflow': requested, 'confidence': None, 'reason': 'Explicit workflow selected by the user.',
+                'provider': 'user selection', 'gate': 'execute'}
+    answers = await jev.decide(state, {'request': state['user_input']}, {
+        'workflow': {'type': 'choice', 'instructions': 'Select the workflow that best serves this request. '
+                     'Use clarify if no supported workflow is appropriate.', 'criteria': WORKFLOW_DESCRIPTIONS}})
+    answer = answers['workflow']
+    workflow = '' if answer['choice'] == 'clarify' else answer['choice']
+    confidence = answer['confidence']
+    return {'workflow': workflow, 'confidence': confidence, 'probabilities': answer['probabilities'],
+            'reason': f"Jev selected {answer['choice']}.", 'provider': 'openrouter/jev',
+            'gate': 'clarify' if not workflow or confidence < .65 else 'escalate' if confidence < .9 else 'execute'}
