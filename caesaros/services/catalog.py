@@ -1,4 +1,9 @@
 from datetime import datetime, timedelta
+import os
+import re
+
+import httpx
+
 from caesaros.services.store import Store
 
 
@@ -32,8 +37,35 @@ class DemoServices:
         return self.store.data()['fitness']
 
     def github(self):
-        # TODO(GITHUB): Read repository metadata using a fine-grained read-only token.
-        return self.store.data()['github']
+        """Read metadata with GITHUB_TOKEN and GITHUB_REPOSITORY (owner/repo)."""
+        token = os.getenv('GITHUB_TOKEN', '').strip()
+        repository = os.getenv('GITHUB_REPOSITORY', '').strip()
+        if not token and not repository:
+            return self.store.data()['github']
+        if not token or not repository:
+            raise ValueError('Set both GITHUB_TOKEN and GITHUB_REPOSITORY')
+        if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
+            raise ValueError('GITHUB_REPOSITORY must be owner/repo')
+        with httpx.Client(timeout=10.0, headers={
+            'Authorization': f'Bearer {token}',
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+        }) as client:
+            response = client.get(f'https://api.github.com/repos/{repository}')
+            response.raise_for_status()
+            metadata = response.json()
+        return {
+            'repository': metadata['full_name'],
+            'branch': metadata['default_branch'],
+            'summary': metadata.get('description') or '',
+            'open_items': [],
+            'open_issues_count': metadata['open_issues_count'],
+            'url': metadata['html_url'],
+            'language': metadata.get('language'),
+            'private': metadata['private'],
+            'archived': metadata['archived'],
+            'updated_at': metadata['updated_at'],
+        }
 
     def review_memory(self, run_id, content):
         def update(data):
